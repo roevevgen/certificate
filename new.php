@@ -1,9 +1,7 @@
 <?php
 
-// Константа для коду помилки при встановленні з'єднання
+// Константи для кодів помилок
     define('ERROR_CONNECTION', 'Помилка при встановленні з\'єднання: ');
-
-// Константа для коду помилки перевірки сертифікату
     define('ERROR_CERTIFICATE_CHECK', 'Помилка при перевірці сертифікату: ');
 
     /**
@@ -17,13 +15,13 @@
     {
         // Створюємо контекст потоку з опцією захоплення сертифікату
         $streamContext = stream_context_create([
-            "ssl" => [
-                "capture_peer_cert" => true
+            'ssl' => [
+                'capture_peer_cert' => true
             ]
         ]);
 
         // Встановлюємо з'єднання з доменом по протоколу SSL
-        $socket = stream_socket_client(
+        $socket = @stream_socket_client(
             "ssl://$domain:443",
             $errno,
             $errstr,
@@ -38,26 +36,25 @@
         }
 
         // Отримуємо ресурс сертифікату з параметрів потоку
-        $certResource = stream_context_get_params($socket)["options"]["ssl"]["peer_certificate"];
+        $certResource = stream_context_get_params($socket)['options']['ssl']['peer_certificate'];
 
         // Отримуємо дані сертифікату в масиві
         $certData = openssl_x509_parse($certResource);
-        $subjectAltNames = isset($certData['extensions']['subjectAltName']) ? $certData['extensions']['subjectAltName'] : '';
 
-        // Отримуємо рядок з альтернативними іменами хостів
-        $subjectAltNamesArray = explode(', ', $subjectAltNames);
+        // Отримуємо масив з альтернативними іменами хостів
+        $subjectAltNamesArray = $certData['extensions']['subjectAltName'] ?? '';
 
         // Задаємо хост, для якого хочемо перевірити сертифікат
-        $hostToCheck = "example.com";
+        $hostToCheck = 'example.com';
 
-        // Використовуємо функцію array_filter для фільтрації імен хостів
-        $filteredAltNames = array_filter($subjectAltNamesArray, function ($altName) use ($hostToCheck) {
-            // Використовуємо функцію trim для видалення зайвих пробілів
-            return trim($altName) === $hostToCheck;
-        });
+        // Використовуємо функцію explode для розбиття рядка з альтернативними іменами на масив
+        $subjectAltNamesArray = explode(', ', $subjectAltNamesArray);
 
-        // Перевіряємо, чи є хоча б одне співпадіння
-        $isValid = !empty($filteredAltNames);
+        // Використовуємо функцію array_map для видалення зайвих пробілів з імен хостів
+        $subjectAltNamesArray = array_map('trim', $subjectAltNamesArray);
+
+        // Використовуємо функцію in_array для перевірки, чи є заданий хост у масиві
+        $isValid = in_array($hostToCheck, $subjectAltNamesArray);
 
         // Закриваємо з'єднання
         fclose($socket);
@@ -67,7 +64,7 @@
     }
 
 // Задаємо домен для перевірки
-    $domainToCheck = "example.com";
+    $domainToCheck = 'example.com';
 
 // Викликаємо функцію перевірки і отримуємо результат
     $result = checkSslCertificate($domainToCheck);
@@ -80,4 +77,3 @@
     } else {
         echo $result; // Виводимо код помилки
     }
-
