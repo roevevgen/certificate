@@ -2,7 +2,6 @@
 
 // Константи для кодів помилок
     define('ERROR_CONNECTION', 'Помилка при встановленні з\'єднання: ');
-    define('ERROR_CERTIFICATE_CHECK', 'Помилка при перевірці сертифікату: ');
 
     /**
      * Перевірка SSL-сертифікату домену за допомогою альтернативних імен хостів (SAN).
@@ -42,10 +41,10 @@
         $certData = openssl_x509_parse($certResource);
 
         // Отримуємо масив з альтернативними іменами хостів
-        $subjectAltNamesArray = $certData['extensions']['subjectAltName'] ?? '';
+        $subjectAltNamesArray = $certData['extensions']['subjectAltName'] ?? [];
 
         // Задаємо хост, для якого хочемо перевірити сертифікат
-        $hostToCheck = 'example.com';
+        $hostToCheck = 'upwork.com';
 
         // Використовуємо функцію explode для розбиття рядка з альтернативними іменами на масив
         $subjectAltNamesArray = explode(', ', $subjectAltNamesArray);
@@ -58,6 +57,54 @@
 
         // Закриваємо з'єднання
         fclose($socket);
+
+        // Перевірка додаткових умов сертифікату
+        if ($isValid) {
+            // Сертифікат закінчився або ще не почав діяти
+            $validFrom = strtotime($certData['validFrom_time_t']);
+            $validTo = strtotime($certData['validTo_time_t']);
+            $currentTime = time();
+
+            if ($currentTime < $validFrom || $currentTime > $validTo) {
+                return 'Сертифікат закінчився або ще не почав діяти.';
+            }
+
+            // Сертифікат був виданий ненадійним центром сертифікації
+            $caIssuers = $certData['extensions']['authorityInfoAccess'] ?? '';
+            if (strpos($caIssuers, 'http://') === 0) {
+                return 'Сертифікат був виданий ненадійним центром сертифікації.';
+            }
+
+            // Сертифікат не відповідає імені домену або IP-адреси сервера
+            $serverName = $certData['subject']['CN'] ?? '';
+            if ($serverName !== $hostToCheck) {
+                return 'Сертифікат не відповідає імені домену або IP-адреси сервера.';
+            }
+
+            // Сертифікат був скасований або відкликаний
+            $crl = $certData['extensions']['crlDistributionPoints'] ?? '';
+            if (!empty($crl)) {
+                return 'Сертифікат був скасований або відкликаний.';
+            }
+
+            // Сертифікат має неправильний алгоритм шифрування або довжину ключа
+            $encryptionAlgorithm = $certData['signatureTypeSN'] ?? '';
+            if ($encryptionAlgorithm !== 'rsaEncryption') {
+                return 'Сертифікат має неправильний алгоритм шифрування.';
+            }
+
+            // Сертифікат має неправильний формат або пошкоджений
+            $validFormat = $certData !== false;
+            if (!$validFormat) {
+                return 'Сертифікат має неправильний формат або пошкоджений.';
+            }
+
+            // Сертифікат не має відповідного закритого ключа на сервері
+            $privateKey = openssl_pkey_get_private($certResource);
+            if ($privateKey === false) {
+                return 'Сертифікат не має відповідного закритого ключа на сервері.';
+            }
+        }
 
         // Повертаємо результат перевірки
         return $isValid;
