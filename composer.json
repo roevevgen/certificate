@@ -1,6 +1,7 @@
 {
   "require": {
     "phpseclib/phpseclib": "^3.0",
-    "ext-readline": "*"
+    "ext-readline": "*",
+    "ext-openssl": "*"
   }
 }
