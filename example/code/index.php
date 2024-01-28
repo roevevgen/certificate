@@ -9,8 +9,7 @@
         <h1>Фотогалерея</h1>
         <section id="gallery">
             <?php
-                require_once 'modules\data.php';
-                /** @noinspection PhpUndefinedVariableInspection */
+                require_once 'modules/data.php';
                 $cnt = count($arr_images);
                 for ($i = 0; $i < $cnt; $i++) {
             ?>
