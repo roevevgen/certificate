@@ -36,10 +36,21 @@
                 else
                     $ins_ending = 'ов';
             }
-        }
-        echo "<p>{$ins} дюйм{$ins_ending} = {$cents} сантиметров.</p>";
-    } else {
-        echo '<p>Величина в дюймах должна быть больше нуля.</p>';
+            $cs = (string)$cents;
+            if (strlen($cs) > 1 && $cs[-2] == '1')
+                $cents_ending = 'ов';
+            else {
+                $cs = $cs[-1];
+                if ($cs == 1)
+                    $cents_ending = '';
+                else if ($cs >= 2 && $cs <= 4)
+                    $cents_ending = 'а';
+                else
+                    $cents_ending = 'ов';
+            }
+            echo "<p>{$ins} дюйм{$ins_ending} = {$cents} сантиметр{$cents_ending}.</p>";
+        } else
+            echo '<p>Величина в дюймах должна быть больше нуля.</p>';
     }
 
 ?>
